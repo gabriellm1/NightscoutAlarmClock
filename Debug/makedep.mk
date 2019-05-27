@@ -6,6 +6,8 @@ src\ASF\thirdparty\freertos\freertos-8.2.3\Source\croutine.c
 
 src\ASF\thirdparty\freertos\freertos-8.2.3\Source\event_groups.c
 
+src\simple.c
+
 src\ASF\thirdparty\freertos\freertos-8.2.3\Source\list.c
 
 src\ASF\thirdparty\freertos\freertos-8.2.3\Source\portable\GCC\ARM_CM7\r0p1\port.c

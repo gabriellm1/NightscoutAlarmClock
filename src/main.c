@@ -4,6 +4,7 @@
 #include "bsp/include/nm_bsp.h"
 #include "driver/include/m2m_wifi.h"
 #include "socket/include/socket.h"
+#include "simple.h"
 
 #define STRING_EOL    "\r\n"
 #define STRING_HEADER "-- WINC1500 weather client example --"STRING_EOL	\
@@ -11,6 +12,7 @@
 	"-- Compiled: "__DATE__ " "__TIME__ " --"STRING_EOL
   
 QueueHandle_t xQueueRaw; 
+QueueHandle_t xQueueDone;
   
 
 /** IP address of host. */
@@ -40,8 +42,14 @@ static bool gbTcpConnection = false;
 static char server_host_name[] = MAIN_SERVER_NAME;
 
 
-#define TASK_WIFI_STACK_SIZE            (4096/sizeof(portSTACK_TYPE))
+#define TASK_WIFI_STACK_SIZE            (3*4096/sizeof(portSTACK_TYPE))
 #define TASK_WIFI_STACK_PRIORITY        (tskIDLE_PRIORITY)
+
+#define TASK_JSON_STACK_SIZE            (5*4096/sizeof(portSTACK_TYPE))
+#define TASK_JSON_STACK_PRIORITY        (tskIDLE_PRIORITY)
+
+#define TASK_LCD_STACK_SIZE            (4096/sizeof(portSTACK_TYPE))
+#define TASK_LCD_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 signed char *pcTaskName);
@@ -194,7 +202,12 @@ static void resolve_cb(uint8_t *hostName, uint32_t hostIp)
 }
 
 
+struct message_t {
+  char content[MAIN_WIFI_M2M_BUFFER_SIZE];
+  };
+  
 
+  
 /**
  * \brief Callback function of TCP client socket.
  *
@@ -242,6 +255,7 @@ static void socket_cb(SOCKET sock, uint8_t u8Msg, void *pvMsg)
 			char *pcIndxPtr;
 			char *pcEndPtr;
       
+      
       // oq  e o queue length?
       //xQueueData = xQueueCreate( 10, sizeof( pstrRecv->pu8Buffer ) );
 
@@ -249,9 +263,11 @@ static void socket_cb(SOCKET sock, uint8_t u8Msg, void *pvMsg)
 			if (pstrRecv && pstrRecv->s16BufferSize > 0) {
         /************************************************************************/
         /* DADO PRONTO!!! */
-        printf("---------------------------------\n" );
+        //printf("---------------------------------\n" );
 				//printf(pstrRecv->pu8Buffer);
-        xQueueSend(xQueueRaw, &pstrRecv->pu8Buffer, 0);
+        struct message_t mensagem;
+        strcpy(&mensagem.content, pstrRecv->pu8Buffer);
+        xQueueSend(xQueueRaw, &mensagem, 0);
         /************************************************************************/
 
 				memset(gau8ReceivedBuffer, 0, sizeof(gau8ReceivedBuffer));
@@ -412,14 +428,38 @@ static void task_wifi(void *pvParameters) {
 
 static void task_json(void){
   
-  xQueueRaw = xQueueCreate( 2, sizeof( uint8_t[MAIN_WIFI_M2M_BUFFER_SIZE] ) );
+  xQueueRaw = xQueueCreate( 1, sizeof( struct message_t ) );
   
-  uint8_t buffer[MAIN_WIFI_M2M_BUFFER_SIZE];
+  struct message_t mensagem;
+  
+  
+  data_g get_atual;
+  
   while(1){
-    if (xQueueReceive(xQueueRaw, &(buffer), 0)) {
-      printf("buffer");
-      printf(buffer);
+    if (xQueueReceive(xQueueRaw, &(mensagem), 0)) {
+
+      
+      parseiro(mensagem.content,&get_atual);
+      
+      xQueueSend(xQueueDone, &get_atual, 0);
+ 
     }
+    vTaskDelay(100);
+  }
+}
+
+static void task_lcd(void){
+  
+  xQueueDone = xQueueCreate( 1, sizeof( data_g ) );
+  
+  data_g data_received;
+  
+  while(1){
+    if (xQueueReceive(xQueueDone, &(data_received), 0)) {
+  
+       printf("%s  %s  %s",data_received.id,data_received.glicose,data_received.direction);      
+    }
+  vTaskDelay(100);
   }
 }
 
@@ -445,6 +485,14 @@ int main(void)
 	TASK_WIFI_STACK_PRIORITY, NULL) != pdPASS) {
 		printf("Failed to create Wifi task\r\n");
 	}
+  if (xTaskCreate(task_json, "JSON", TASK_JSON_STACK_SIZE, NULL,
+  TASK_JSON_STACK_PRIORITY, NULL) != pdPASS) {
+    printf("Failed to create JSON task\r\n");
+  }
+  if (xTaskCreate(task_lcd, "LCD", TASK_LCD_STACK_SIZE, NULL,
+  TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
+    printf("Failed to create LCD task\r\n");
+  }
 
 	vTaskStartScheduler();
 

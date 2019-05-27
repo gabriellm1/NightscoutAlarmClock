@@ -127,6 +127,7 @@ SUBDIRS :=  \
 C_SRCS +=  \
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.c \
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.c \
+../src/simple.c \
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/list.c \
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1/port.c \
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/MemMang/heap_1.c \
@@ -183,6 +184,7 @@ ASM_SRCS +=
 OBJS +=  \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.o \
+src/simple.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/list.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1/port.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/MemMang/heap_1.o \
@@ -232,6 +234,7 @@ src/main.o
 OBJS_AS_ARGS +=  \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.o \
+src/simple.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/list.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1/port.o \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/MemMang/heap_1.o \
@@ -281,6 +284,7 @@ src/main.o
 C_DEPS +=  \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.d \
+src/simple.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/list.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1/port.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/MemMang/heap_1.d \
@@ -330,6 +334,7 @@ src/main.d
 C_DEPS_AS_ARGS +=  \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.d \
+src/simple.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/list.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1/port.d \
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/MemMang/heap_1.d \
@@ -399,6 +404,13 @@ src/ASF/thirdparty/freertos/freertos-8.2.3/Source/croutine.o: ../src/ASF/thirdpa
 	
 
 src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.o: ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/event_groups.c
+	@echo Building file: $<
+	@echo Invoking: ARM/GNU C Compiler : 6.3.1
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-gcc.exe$(QUOTE)  -x c -mthumb -D__SAME70Q21B__ -DDEBUG -D__SAME70Q21__ -DBOARD=SAME70_XPLAINED -Dscanf=iscanf -DARM_MATH_CM7=true -Dprintf=iprintf -D__FREERTOS__  -I"../src/ASF/sam/drivers/tc" -I"../src/ASF/sam/drivers/pmc" -I"../src/ASF/sam/utils" -I"../src/ASF/sam/utils/header_files" -I"../src/ASF/sam/utils/preprocessor" -I"../src/ASF/thirdparty/CMSIS/Include" -I"../src/ASF/thirdparty/CMSIS/Lib/GCC" -I"../src/ASF/sam/utils/fpu" -I"../src/ASF/common/utils" -I"../src/ASF/sam/utils/cmsis/same70/include" -I"../src/ASF/sam/utils/cmsis/same70/source/templates" -I"../src/ASF/sam/drivers/pio" -I"../src/ASF/common/services/ioport" -I"../src/ASF/common/services/clock" -I"../src/ASF/common/utils/stdio/stdio_serial" -I"../src/ASF/common/services/serial/sam_uart" -I"../src/ASF/common/services/serial" -I"../src/ASF/sam/drivers/uart" -I"../src/ASF/sam/drivers/usart" -I"../src/ASF/sam/boards/same70_xplained" -I"../src/ASF/sam/boards" -I"../src/ASF/common/boards" -I"../src/ASF/common/services/gpio" -I"../src/ASF/sam/drivers/mpu" -I"../src/ASF/sam/drivers/matrix" -I"../src" -I"../src/config" -I"../src/ASF/sam/drivers/twihs" -I"../src/ASF/common/components/wifi/winc1500" -I"../src/ASF/common/services/delay" -I"../src/ASF/sam/drivers/spi" -I"../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/include" -I"../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1"  -O1 -fdata-sections -ffunction-sections -mlong-calls -g3 -Wall -mcpu=cortex-m7 -c -pipe -fno-strict-aliasing -Wall -Wstrict-prototypes -Wmissing-prototypes -Werror-implicit-function-declaration -Wpointer-arith -std=gnu99 -ffunction-sections -fdata-sections -Wchar-subscripts -Wcomment -Wformat=2 -Wimplicit-int -Wmain -Wparentheses -Wsequence-point -Wreturn-type -Wswitch -Wtrigraphs -Wunused -Wuninitialized -Wunknown-pragmas -Wfloat-equal -Wundef -Wshadow -Wbad-function-cast -Wwrite-strings -Wsign-compare -Waggregate-return -Wmissing-declarations -Wformat -Wmissing-format-attribute -Wno-deprecated-declarations -Wpacked -Wredundant-decls -Wnested-externs -Wlong-long -Wunreachable-code -Wcast-align --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv5-sp-d16 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
+src/simple.o: ../src/simple.c
 	@echo Building file: $<
 	@echo Invoking: ARM/GNU C Compiler : 6.3.1
 	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-gcc.exe$(QUOTE)  -x c -mthumb -D__SAME70Q21B__ -DDEBUG -D__SAME70Q21__ -DBOARD=SAME70_XPLAINED -Dscanf=iscanf -DARM_MATH_CM7=true -Dprintf=iprintf -D__FREERTOS__  -I"../src/ASF/sam/drivers/tc" -I"../src/ASF/sam/drivers/pmc" -I"../src/ASF/sam/utils" -I"../src/ASF/sam/utils/header_files" -I"../src/ASF/sam/utils/preprocessor" -I"../src/ASF/thirdparty/CMSIS/Include" -I"../src/ASF/thirdparty/CMSIS/Lib/GCC" -I"../src/ASF/sam/utils/fpu" -I"../src/ASF/common/utils" -I"../src/ASF/sam/utils/cmsis/same70/include" -I"../src/ASF/sam/utils/cmsis/same70/source/templates" -I"../src/ASF/sam/drivers/pio" -I"../src/ASF/common/services/ioport" -I"../src/ASF/common/services/clock" -I"../src/ASF/common/utils/stdio/stdio_serial" -I"../src/ASF/common/services/serial/sam_uart" -I"../src/ASF/common/services/serial" -I"../src/ASF/sam/drivers/uart" -I"../src/ASF/sam/drivers/usart" -I"../src/ASF/sam/boards/same70_xplained" -I"../src/ASF/sam/boards" -I"../src/ASF/common/boards" -I"../src/ASF/common/services/gpio" -I"../src/ASF/sam/drivers/mpu" -I"../src/ASF/sam/drivers/matrix" -I"../src" -I"../src/config" -I"../src/ASF/sam/drivers/twihs" -I"../src/ASF/common/components/wifi/winc1500" -I"../src/ASF/common/services/delay" -I"../src/ASF/sam/drivers/spi" -I"../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/include" -I"../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/portable/GCC/ARM_CM7/r0p1"  -O1 -fdata-sections -ffunction-sections -mlong-calls -g3 -Wall -mcpu=cortex-m7 -c -pipe -fno-strict-aliasing -Wall -Wstrict-prototypes -Wmissing-prototypes -Werror-implicit-function-declaration -Wpointer-arith -std=gnu99 -ffunction-sections -fdata-sections -Wchar-subscripts -Wcomment -Wformat=2 -Wimplicit-int -Wmain -Wparentheses -Wsequence-point -Wreturn-type -Wswitch -Wtrigraphs -Wunused -Wuninitialized -Wunknown-pragmas -Wfloat-equal -Wundef -Wshadow -Wbad-function-cast -Wwrite-strings -Wsign-compare -Waggregate-return -Wmissing-declarations -Wformat -Wmissing-format-attribute -Wno-deprecated-declarations -Wpacked -Wredundant-decls -Wnested-externs -Wlong-long -Wunreachable-code -Wcast-align --param max-inline-insns-single=500 -mfloat-abi=softfp -mfpu=fpv5-sp-d16 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 

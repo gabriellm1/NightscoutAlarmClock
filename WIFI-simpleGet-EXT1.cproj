@@ -748,6 +748,12 @@
     <Compile Include="src\ASF\thirdparty\freertos\freertos-8.2.3\Source\event_groups.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\simple.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\simple.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="src\ASF\thirdparty\freertos\freertos-8.2.3\Source\include\task.h">
       <SubType>compile</SubType>
     </None>
@@ -814,6 +820,9 @@
     <None Include="src\config\FreeRTOSConfig.h">
       <SubType>compile</SubType>
     </None>
+    <Compile Include="src\jsmn.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\main.h">
       <SubType>compile</SubType>
     </Compile>
