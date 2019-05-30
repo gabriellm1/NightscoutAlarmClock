@@ -12,7 +12,7 @@
 
 typedef struct {
   char id[80];
-  char glicose[80];
+  char glicose[3];
   char direction[80];
 } data_g;
 

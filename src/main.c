@@ -6,13 +6,14 @@
 #include "socket/include/socket.h"
 #include "simple.h"
 
+//#define DEBUG 1
+
 #define STRING_EOL    "\r\n"
 #define STRING_HEADER "-- WINC1500 weather client example --"STRING_EOL	\
 	"-- "BOARD_NAME " --"STRING_EOL	\
 	"-- Compiled: "__DATE__ " "__TIME__ " --"STRING_EOL
   
-QueueHandle_t xQueueRaw; 
-QueueHandle_t xQueueDone;
+
   
 
 /** IP address of host. */
@@ -45,11 +46,14 @@ static char server_host_name[] = MAIN_SERVER_NAME;
 #define TASK_WIFI_STACK_SIZE            (3*4096/sizeof(portSTACK_TYPE))
 #define TASK_WIFI_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
-#define TASK_JSON_STACK_SIZE            (5*4096/sizeof(portSTACK_TYPE))
+#define TASK_JSON_STACK_SIZE            (3*4096/sizeof(portSTACK_TYPE))
 #define TASK_JSON_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
 #define TASK_LCD_STACK_SIZE            (4096/sizeof(portSTACK_TYPE))
 #define TASK_LCD_STACK_PRIORITY        (tskIDLE_PRIORITY)
+
+#define TASK_ALARME_STACK_SIZE         (4096/sizeof(portSTACK_TYPE))
+#define TASK_ALARME_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 signed char *pcTaskName);
@@ -58,8 +62,33 @@ extern void vApplicationTickHook(void);
 extern void vApplicationMallocFailedHook(void);
 extern void xPortSysTickHandler(void);
 
+QueueHandle_t xQueueRaw;
+QueueHandle_t xQueueDone;
+QueueHandle_t xQueueCheck;
 
+// defines do Buzzer
+#define BUZZ_PIO           PIOD
+#define BUZZ_PIO_ID        ID_PIOD
+#define BUZZ_PIO_IDX       30u
+#define BUZZ_PIO_IDX_MASK  (1u << BUZZ_PIO_IDX)
 
+// defines da fita (BLUE)
+#define BLUE_PIO           PIOA
+#define BLUE_PIO_ID        ID_PIOA
+#define BLUE_PIO_IDX       6u
+#define BLUE_PIO_IDX_MASK  (1u << BLUE_PIO_IDX)
+
+// defines da fita (GREEN)
+#define GREEN_PIO           PIOC
+#define GREEN_PIO_ID        ID_PIOC
+#define GREEN_PIO_IDX       19u
+#define GREEN_PIO_IDX_MASK  (1u << GREEN_PIO_IDX)
+
+// defines da fita (RED)
+#define RED_PIO           PIOA
+#define RED_PIO_ID        ID_PIOA
+#define RED_PIO_IDX       2u
+#define RED_PIO_IDX_MASK  (1u << RED_PIO_IDX)
 
 /**
  * \brief Called if stack overflow during execution
@@ -392,6 +421,7 @@ static void task_wifi(void *pvParameters) {
 // 	printf("Inet aton : %d", addr_in.sin_addr);
 
   while(1){
+
 	  m2m_wifi_handle_events(NULL);
 	  if (wifi_connected == M2M_WIFI_CONNECTED) {
 		  if (gbHostIpByName) {
@@ -436,12 +466,14 @@ static void task_json(void){
   data_g get_atual;
   
   while(1){
+
     if (xQueueReceive(xQueueRaw, &(mensagem), 0)) {
 
       
       parseiro(mensagem.content,&get_atual);
       
       xQueueSend(xQueueDone, &get_atual, 0);
+      xQueueSend(xQueueCheck, &get_atual, 0);
  
     }
     vTaskDelay(100);
@@ -455,12 +487,72 @@ static void task_lcd(void){
   data_g data_received;
   
   while(1){
+
     if (xQueueReceive(xQueueDone, &(data_received), 0)) {
-  
-       printf("%s  %s  %s",data_received.id,data_received.glicose,data_received.direction);      
-    }
+        //printf("\nLCD %s  %s  %s\n",data_received.id, data_received.glicose,data_received.direction);
+      }
   vTaskDelay(100);
   }
+}
+
+static void task_alarme(void){
+  
+  xQueueCheck = xQueueCreate( 1, sizeof( data_g ) );
+  
+  data_g data_check;
+  
+  int glu;
+  
+  //TickType_t sleep = 100 ;
+  
+  while(1){
+
+        if (xQueueReceive(xQueueCheck, &(data_check), 0)) {
+          //printf("\nALARME %s  %s  %s\n",data_check.id, data_check.glicose,data_check.direction);
+          //glu = atoi(data_check.glicose);
+          glu = 170;
+
+          
+          if (glu<=140 && glu>=90){
+            printf("\ngreen");
+            pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
+            pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
+            pio_set(RED_PIO,RED_PIO_IDX_MASK);
+          }else if((glu>140 && glu<=180)||(glu<90 && glu>=70)){
+            printf("\nyellow");
+            pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
+            pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
+            pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+           }    
+           else{
+             //pio_set(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
+             pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
+             pio_set(GREEN_PIO, GREEN_PIO_IDX_MASK);
+             pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+             printf("\nred");
+           }        
+        }
+        vTaskDelay(100);  
+  }
+  
+}
+
+void io_init(void){
+   // Desativa WatchDog Timer
+   WDT->WDT_MR = WDT_MR_WDDIS;
+
+   // Ativa o PIO na qual o BUZZ foi conectado
+   // para que possamos controlar o BUZZ.
+   pmc_enable_periph_clk(BUZZ_PIO_ID);
+   pmc_enable_periph_clk(BLUE_PIO_ID);
+   pmc_enable_periph_clk(GREEN_PIO_ID);
+   pmc_enable_periph_clk(RED_PIO_ID);
+   //Inicializa PA19 como sa?da
+   pio_set_output(BUZZ_PIO, BUZZ_PIO_IDX_MASK, 0, 0, 0);
+   pio_set_output(BLUE_PIO, BLUE_PIO_IDX_MASK, 1, 0, 0);
+   pio_set_output(GREEN_PIO, GREEN_PIO_IDX_MASK, 1, 0, 0);
+   pio_set_output(RED_PIO, RED_PIO_IDX_MASK, 1, 0, 0);
+
 }
 
 /**
@@ -475,11 +567,17 @@ int main(void)
 	/* Initialize the board. */
 	sysclk_init();
 	board_init();
+  io_init();
 
 	/* Initialize the UART console. */
 	configure_console();
 	printf(STRING_HEADER);
-
+  
+//     pio_clear(BUZZ_PIO, GREEN_PIO_IDX_MASK);
+//     pio_clear(BLUE_PIO, BLUE_PIO_IDX_MASK);
+//     pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
+//     pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+    //while(1){}
 
 	if (xTaskCreate(task_wifi, "Wifi", TASK_WIFI_STACK_SIZE, NULL,
 	TASK_WIFI_STACK_PRIORITY, NULL) != pdPASS) {
@@ -492,6 +590,10 @@ int main(void)
   if (xTaskCreate(task_lcd, "LCD", TASK_LCD_STACK_SIZE, NULL,
   TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
     printf("Failed to create LCD task\r\n");
+  }
+  if (xTaskCreate(task_alarme, "ALARME", TASK_ALARME_STACK_SIZE, NULL,
+  TASK_ALARME_STACK_PRIORITY, NULL) != pdPASS) {
+    printf("Failed to create ALARME task\r\n");
   }
 
 	vTaskStartScheduler();
