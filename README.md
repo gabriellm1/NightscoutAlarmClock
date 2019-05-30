@@ -3,12 +3,12 @@ DIY project for an alarm clock that displays glucose using Nightscout API
 
 
 - C
-   - RTOS
-   - Ler dados da web
+   - RTOS DONE 
+   - Ler dados da web DONE
    - Formatar/Exibir
    - Cores
    - Status servidor
-   - Caixinha
+   - Caixinha DONE
    
 - B (+2 itens)
 - A (+2 itens)
@@ -16,6 +16,6 @@ DIY project for an alarm clock that displays glucose using Nightscout API
   - botão atualiza
   - botão help(IFTTT)
   - Calculo de tendência
-  - Caixinha muda cor
-  - alarme sonoro
+  - Caixinha muda cor DONE
+  - alarme sonoro DONE
    
