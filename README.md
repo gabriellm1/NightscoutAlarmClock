@@ -13,7 +13,7 @@ DIY project for an alarm clock that displays glucose using Nightscout API
 - B (+2 itens)
 - A (+2 itens)
 
-  - botão atualiza
+  - botão snooze
   - botão help(IFTTT)
   - Calculo de tendência
   - Caixinha muda cor DONE
