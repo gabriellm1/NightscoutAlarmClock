@@ -2,6 +2,14 @@
 # Automatically-generated file. Do not edit or delete the file
 ################################################################################
 
+src\ASF\common\services\spi\sam_spi\spi_master.c
+
+src\ASF\sam\boards\same70_xplained\init.c
+
+src\ASF\sam\components\display\ili9488\ili9488.c
+
+src\ASF\sam\drivers\rtc\rtc.c
+
 src\ASF\thirdparty\freertos\freertos-8.2.3\Source\croutine.c
 
 src\ASF\thirdparty\freertos\freertos-8.2.3\Source\event_groups.c
@@ -65,8 +73,6 @@ src\ASF\common\utils\interrupt\interrupt_sam_nvic.c
 src\ASF\common\utils\stdio\read.c
 
 src\ASF\common\utils\stdio\write.c
-
-src\ASF\sam\boards\same70_xplained\init.c
 
 src\ASF\sam\drivers\matrix\matrix.c
 

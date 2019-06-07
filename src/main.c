@@ -6,6 +6,31 @@
 #include "socket/include/socket.h"
 #include "simple.h"
 
+#include "icones/tfont.h"
+#include "icones/digital521.h"
+#include "icones/arrow.h"
+#include "icones/bloodG.h"
+#include "icones/bloodY.h"
+#include "icones/bloodR.h"
+#include "icones/arrow45down.h"
+#include "icones/arrow90down.h"
+#include "icones/arrow45up.h"
+#include "icones/arrow90up.h"
+
+
+const uint32_t LINE1_Y = 10;
+const uint32_t LINE2_Y = 120;
+const uint32_t LINE3_Y = 230;
+
+const uint32_t BLOOD_ICON_X = 5;
+const uint32_t TREND_ICON_X = 175;
+const uint32_t ICON_WIDHT = 50;
+const uint32_t ICON_HEIGHT = 51;
+const uint32_t PRED_X = 230;
+const uint32_t CLOCK_X = 5;
+const uint32_t DATE_X = 200;
+const uint32_t STAT_X = 390;
+
 //#define DEBUG 1
 
 #define STRING_EOL    "\r\n"
@@ -55,6 +80,18 @@ static char server_host_name[] = MAIN_SERVER_NAME;
 #define TASK_ALARME_STACK_SIZE         (4096/sizeof(portSTACK_TYPE))
 #define TASK_ALARME_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
+struct ili9488_opt_t g_ili9488_display_opt;
+
+#define YEAR        2019
+#define MONTH		5
+#define DAY         13
+#define WEEK        12
+#define HOUR        23
+#define MINUTE      59
+#define SECOND      24
+uint32_t year, week ,month ,day, hour, minu, seg;
+
+
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 signed char *pcTaskName);
 extern void vApplicationIdleHook(void);
@@ -84,7 +121,7 @@ QueueHandle_t xQueueCheck;
 #define GREEN_PIO_IDX       19u
 #define GREEN_PIO_IDX_MASK  (1u << GREEN_PIO_IDX)
 
-// defines da fita (RED)
+//defines da fita (RED)
 #define RED_PIO           PIOA
 #define RED_PIO_ID        ID_PIOA
 #define RED_PIO_IDX       2u
@@ -149,6 +186,58 @@ static void configure_console(void)
 	stdio_serial_init(CONF_UART, &uart_serial_options);
 }
 
+static void configure_lcd(void){
+  /* Initialize display parameter */
+  g_ili9488_display_opt.ul_width = ILI9488_LCD_WIDTH;
+  g_ili9488_display_opt.ul_height = ILI9488_LCD_HEIGHT;
+  g_ili9488_display_opt.foreground_color = COLOR_CONVERT(COLOR_WHITE);
+  g_ili9488_display_opt.background_color = COLOR_CONVERT(COLOR_WHITE);
+
+	pmc_enable_periph_clk(BORAD_ILI9488_ID_USART);
+
+
+  /* Initialize LCD */
+  ili9488_init(&g_ili9488_display_opt);
+}
+void draw_screen(void) {
+  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
+  ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, ILI9488_LCD_HEIGHT-1);
+}
+void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
+  char *p = text;
+  while(*p != NULL) {
+    char letter = *p;
+    int letter_offset = letter - font->start_char;
+    if(letter <= font->end_char) {
+      tChar *current_char = font->chars + letter_offset;
+      ili9488_draw_pixmap(x, y, current_char->image->width, current_char->image->height, current_char->image->data);
+      x += current_char->image->width + spacing;
+    }
+    p++;
+  }
+}
+
+void RTC_init(){
+  /* Configura o PMC */
+  pmc_enable_periph_clk(ID_RTC);
+
+  /* Default RTC configuration, 24-hour mode */
+  rtc_set_hour_mode(RTC, 0);
+
+  /* Configura data e hora manualmente */
+  rtc_set_date(RTC, YEAR, MONTH, DAY, WEEK);
+  rtc_set_time(RTC, HOUR, MINUTE, SECOND);
+
+  /* Configure RTC interrupts */
+  NVIC_DisableIRQ(RTC_IRQn);
+  NVIC_ClearPendingIRQ(RTC_IRQn);
+  NVIC_SetPriority(RTC_IRQn, 0);
+  NVIC_EnableIRQ(RTC_IRQn);
+
+  /* Ativa interrupcao via alarme */
+  rtc_enable_interrupt(RTC,  RTC_IER_ALREN);
+
+}
 
 /*
  * Check whether "cp" is a valid ascii representation
@@ -471,7 +560,7 @@ static void task_json(void){
 
       
       parseiro(mensagem.content,&get_atual);
-      
+      //printf("RECEBEU\n");
       xQueueSend(xQueueDone, &get_atual, 0);
       xQueueSend(xQueueCheck, &get_atual, 0);
  
@@ -480,24 +569,118 @@ static void task_json(void){
   }
 }
 
-static void task_lcd(void){
-  
-  xQueueDone = xQueueCreate( 1, sizeof( data_g ) );
-  
-  data_g data_received;
-  
-  while(1){
+void task_lcd(void){
+	
+	
+  configure_lcd();
 
-    if (xQueueReceive(xQueueDone, &(data_received), 0)) {
-        //printf("\nLCD %s  %s  %s\n",data_received.id, data_received.glicose,data_received.direction);
-      }
-  vTaskDelay(100);
-  }
+  xQueueDone = xQueueCreate( 1, sizeof( data_g ) );
+	 
+	data_g data_received;
+
+
+// 	strcpy(data_received.id  , "5ceab5b2fd74a2bdcb26a27c");
+// 	strcpy(data_received.glicose  , "116");
+// 	strcpy(data_received.direction  , "flat");
+
+	int  isDead = 1;
+	char tend[] = "115";
+	
+	uint duty = 30; // dutty cycle inicial
+	int diff = 14;
+	  
+	draw_screen();
+	uint8_t stingLCD[56];
+
+	//int time_in_s  = 60; // segundos
+	//const TickType_t xDelay = time_in_s*1000 / portTICK_PERIOD_MS; // Converte ticks do CORE para ms
+
+	while (true) {  
+    if (xQueueReceive(xQueueCheck, &(data_received), 0)) {
+       printf("\nALARME %s  %s  %s\n",data_received.id, data_received.glicose,data_received.direction);
+
+		  sprintf(stingLCD, ":%s", data_received.glicose);
+		  font_draw_text(&digital52, stingLCD, ICON_HEIGHT+1, LINE2_Y, 1);
+		
+		  if (isDead==0){
+			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodG);
+		  }
+		  else if (isDead==1){
+			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodY);
+		  }
+		  else if (isDead==2){
+			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodR);
+		  }
+		  if (strcmp(data_received.direction,"90up") == 0){
+			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90up);
+		  }
+		  else if (strcmp(data_received.direction,"45up") == 0){
+			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45up);
+		  }
+		  else if (strcmp(data_received.direction,"flat") == 0){
+			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow);
+		  }
+		  else if (strcmp(data_received.direction,"45down") == 0){
+			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45down);
+		  }
+		  else if (strcmp(data_received.direction,"90down") == 0){
+			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90down);
+		  }
+		  if(diff>=15){
+			  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_RED));
+		  }
+		  else if (diff<15){
+			  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_GREEN));
+		  }
+		
+		  ili9488_draw_filled_circle(STAT_X,LINE3_Y+25,25);
+		  font_draw_text(&digital52, "Server Status:", BLOOD_ICON_X, LINE3_Y, 1);
+
+		  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
+		  ili9488_draw_filled_rectangle(LINE2_Y+30,0, LINE2_Y+53,220);
+		  ili9488_draw_filled_rectangle(LINE2_Y+105,0, LINE2_Y+153,220);
+		  /*
+		
+		  TENDENCIA VAI AQUI
+		
+		  */
+		
+		  vTaskDelay(1000);
+    }    
+	}	 
 }
+
+void task_update_clock(void){
+   uint8_t stingCLK[56];
+   
+   RTC_init();
+ 
+   rtc_get_time(RTC,&hour, &minu, &seg);
+   rtc_get_date(RTC,&year, &day,&month,&week);
+ 
+   /* Block for 60000ms. */
+   //int time_in_s  = 60; // segundos
+   //const TickType_t xDelay = time_in_s*1000 / portTICK_PERIOD_MS; // Converte ticks do CORE para ms
+   
+   while(true){
+     rtc_get_time(RTC, &hour, &minu, &seg);
+     rtc_get_date(RTC,&year, &month,&day,&week);
+     
+     ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
+     ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, LINE2_Y-30);
+ 
+     sprintf(stingCLK, "%d/%d", day,month);
+     font_draw_text(&digital52, stingCLK, DATE_X, LINE1_Y, 1);
+ 
+     sprintf(stingCLK, "%d:%d", hour,minu);
+     font_draw_text(&digital52, stingCLK, CLOCK_X, LINE1_Y, 5);
+     vTaskDelay(60000); // delay de 60 segundos
+   }
+ }
 
 static void task_alarme(void){
   
-  xQueueCheck = xQueueCreate( 1, sizeof( data_g ) );
+   xQueueCheck = xQueueCreate( 1, sizeof( data_g ) );
   
   data_g data_check;
   
@@ -508,27 +691,27 @@ static void task_alarme(void){
   while(1){
 
         if (xQueueReceive(xQueueCheck, &(data_check), 0)) {
-          //printf("\nALARME %s  %s  %s\n",data_check.id, data_check.glicose,data_check.direction);
-          //glu = atoi(data_check.glicose);
-          glu = 170;
+          printf("\nALARME %s  %s  %s\n",data_check.id, data_check.glicose,data_check.direction);
+          glu = atoi(data_check.glicose);
+          //glu = 170;
 
           
           if (glu<=140 && glu>=90){
             printf("\ngreen");
             pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
             pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
-            pio_set(RED_PIO,RED_PIO_IDX_MASK);
+            //pio_set(RED_PIO,RED_PIO_IDX_MASK);
           }else if((glu>140 && glu<=180)||(glu<90 && glu>=70)){
             printf("\nyellow");
             pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
             pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
-            pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+            //pio_clear(RED_PIO, RED_PIO_IDX_MASK);
            }    
            else{
              //pio_set(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
              pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
              pio_set(GREEN_PIO, GREEN_PIO_IDX_MASK);
-             pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+             //pio_clear(RED_PIO, RED_PIO_IDX_MASK);
              printf("\nred");
            }        
         }
@@ -546,12 +729,12 @@ void io_init(void){
    pmc_enable_periph_clk(BUZZ_PIO_ID);
    pmc_enable_periph_clk(BLUE_PIO_ID);
    pmc_enable_periph_clk(GREEN_PIO_ID);
-   pmc_enable_periph_clk(RED_PIO_ID);
+   //pmc_enable_periph_clk(RED_PIO_ID);
    //Inicializa PA19 como sa?da
    pio_set_output(BUZZ_PIO, BUZZ_PIO_IDX_MASK, 0, 0, 0);
    pio_set_output(BLUE_PIO, BLUE_PIO_IDX_MASK, 1, 0, 0);
    pio_set_output(GREEN_PIO, GREEN_PIO_IDX_MASK, 1, 0, 0);
-   pio_set_output(RED_PIO, RED_PIO_IDX_MASK, 1, 0, 0);
+   //pio_set_output(RED_PIO, RED_PIO_IDX_MASK, 1, 0, 0);
 
 }
 
@@ -568,16 +751,11 @@ int main(void)
 	sysclk_init();
 	board_init();
   io_init();
+  RTC_init();
 
 	/* Initialize the UART console. */
 	configure_console();
 	printf(STRING_HEADER);
-  
-//     pio_clear(BUZZ_PIO, GREEN_PIO_IDX_MASK);
-//     pio_clear(BLUE_PIO, BLUE_PIO_IDX_MASK);
-//     pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
-//     pio_clear(RED_PIO, RED_PIO_IDX_MASK);
-    //while(1){}
 
 	if (xTaskCreate(task_wifi, "Wifi", TASK_WIFI_STACK_SIZE, NULL,
 	TASK_WIFI_STACK_PRIORITY, NULL) != pdPASS) {
@@ -594,6 +772,10 @@ int main(void)
   if (xTaskCreate(task_alarme, "ALARME", TASK_ALARME_STACK_SIZE, NULL,
   TASK_ALARME_STACK_PRIORITY, NULL) != pdPASS) {
     printf("Failed to create ALARME task\r\n");
+  }
+  if (xTaskCreate(task_update_clock, "temp_read_task", TASK_LCD_STACK_SIZE, NULL,
+   TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
+    printf("Failed to create test pot task\r\n");
   }
 
 	vTaskStartScheduler();

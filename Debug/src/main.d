@@ -152,6 +152,8 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  ../src/ASF/sam/drivers/pmc/pmc.h ../src/ASF/common/services/clock/pll.h \
  ../src/ASF/common/services/clock/same70/pll.h \
  ../src/ASF/common/services/delay/sam/cycle_counter.h \
+ ../src/ASF/sam/components/display/ili9488/ili9488.h \
+ ../src/config/conf_ili9488.h \
  ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/include/FreeRTOS.h \
  ../src/config/FreeRTOSConfig.h \
  ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/include/projdefs.h \
@@ -181,9 +183,11 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  ../src/ASF/common/services/ioport/ioport.h \
  ../src/ASF/common/services/ioport/sam/ioport_pio.h \
  ../src/ASF/sam/drivers/matrix/matrix.h ../src/ASF/sam/drivers/mpu/mpu.h \
- ../src/ASF/sam/drivers/pmc/sleep.h ../src/ASF/sam/utils/fpu/fpu.h \
+ ../src/ASF/sam/drivers/pmc/sleep.h ../src/ASF/sam/drivers/rtc/rtc.h \
+ ../src/ASF/sam/utils/fpu/fpu.h \
  ../src/ASF/sam/boards/same70_xplained/led.h \
- ../src/ASF/sam/drivers/spi/spi.h \
+ ../src/ASF/common/services/spi/sam_spi/spi_master.h \
+ ../src/ASF/sam/drivers/spi/spi.h ../src/config/conf_spi_master.h \
  ../src/ASF/common/utils/stdio/stdio_serial/stdio_serial.h \
  ../src/ASF/common/services/serial/serial.h \
  ../src/ASF/common/services/serial/sam_uart/uart_serial.h \
@@ -204,7 +208,11 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-none-eabi\include\xlocale.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-none-eabi\include\sys\string.h \
  ../src/ASF/common/components/wifi/winc1500/socket/include/socket.h \
- ../src/simple.h
+ ../src/simple.h ../src/icones/tfont.h ../src/icones/digital521.h \
+ ../src/icones/arrow.h ../src/icones/bloodG.h ../src/icones/bloodY.h \
+ ../src/icones/bloodR.h ../src/icones/arrow45down.h \
+ ../src/icones/arrow90down.h ../src/icones/arrow45up.h \
+ ../src/icones/arrow90up.h
 
 ../src/asf.h:
 
@@ -518,6 +526,10 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ../src/ASF/common/services/delay/sam/cycle_counter.h:
 
+../src/ASF/sam/components/display/ili9488/ili9488.h:
+
+../src/config/conf_ili9488.h:
+
 ../src/ASF/thirdparty/freertos/freertos-8.2.3/Source/include/FreeRTOS.h:
 
 ../src/config/FreeRTOSConfig.h:
@@ -580,11 +592,17 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ../src/ASF/sam/drivers/pmc/sleep.h:
 
+../src/ASF/sam/drivers/rtc/rtc.h:
+
 ../src/ASF/sam/utils/fpu/fpu.h:
 
 ../src/ASF/sam/boards/same70_xplained/led.h:
 
+../src/ASF/common/services/spi/sam_spi/spi_master.h:
+
 ../src/ASF/sam/drivers/spi/spi.h:
+
+../src/config/conf_spi_master.h:
 
 ../src/ASF/common/utils/stdio/stdio_serial/stdio_serial.h:
 
@@ -633,3 +651,23 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ../src/ASF/common/components/wifi/winc1500/socket/include/socket.h:
 
 ../src/simple.h:
+
+../src/icones/tfont.h:
+
+../src/icones/digital521.h:
+
+../src/icones/arrow.h:
+
+../src/icones/bloodG.h:
+
+../src/icones/bloodY.h:
+
+../src/icones/bloodR.h:
+
+../src/icones/arrow45down.h:
+
+../src/icones/arrow90down.h:
+
+../src/icones/arrow45up.h:
+
+../src/icones/arrow90up.h:

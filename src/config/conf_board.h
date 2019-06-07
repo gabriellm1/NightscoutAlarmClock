@@ -52,7 +52,11 @@
 
 /** Enable Com Port. */
 #define CONF_BOARD_UART_CONSOLE
-
+#define CONF_BOARD_MAXTOUCH_XPRO
+#define CONF_BOARD_TWIHS0
+//#define CONF_BOARD_TWIHS1
+//#define CONF_BOARD_TWIHS2
+#define CONF_BOARD_ILI9488
 /** define BOARD_NO_PUSHBUTTON_2. */
 #define BOARD_NO_PUSHBUTTON_2
 
