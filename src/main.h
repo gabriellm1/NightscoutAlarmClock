@@ -48,9 +48,9 @@ extern "C" {
 #include "driver/include/m2m_wifi.h"
 
 /** Wi-Fi Settings */
-#define MAIN_WLAN_SSID                    "Monteiro2" /**< Destination SSID */
+#define MAIN_WLAN_SSID                    "not_skynet" /**< Destination SSID */
 #define MAIN_WLAN_AUTH                    M2M_WIFI_SEC_WPA_PSK /**< Security manner */
-#define MAIN_WLAN_PSK                     "dildodildo" /**< Password for Destination SSID */
+#define MAIN_WLAN_PSK                     "jeagj2512250425051012" /**< Password for Destination SSID */
 
 #define MAIN_M2M_DEVICE_NAME "Mello"
 #define MAIN_MAC_ADDRESS {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}

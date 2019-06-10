@@ -319,8 +319,8 @@ struct ili9488_font{
  * Display direction option
  */
 enum ili9488_display_direction{
-	LANDSCAPE  = 0,
-	PORTRAIT   = 1
+	LANDSCAPE  = 1,
+	PORTRAIT   = 0
 };
 
 

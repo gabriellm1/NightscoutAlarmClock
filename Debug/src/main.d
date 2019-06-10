@@ -212,7 +212,8 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  ../src/icones/arrow.h ../src/icones/bloodG.h ../src/icones/bloodY.h \
  ../src/icones/bloodR.h ../src/icones/arrow45down.h \
  ../src/icones/arrow90down.h ../src/icones/arrow45up.h \
- ../src/icones/arrow90up.h
+ ../src/icones/arrow90up.h ../src/icones/Connection.h \
+ ../src/icones/NoConnection.h
 
 ../src/asf.h:
 
@@ -671,3 +672,7 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ../src/icones/arrow45up.h:
 
 ../src/icones/arrow90up.h:
+
+../src/icones/Connection.h:
+
+../src/icones/NoConnection.h:
