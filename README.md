@@ -7,7 +7,7 @@ DIY project for an alarm clock that displays glucose using Nightscout API
    - Ler dados da web DONE
    - Formatar/Exibir
    - Cores
-   - Status servidor
+   - Status servidor DONE
    - Caixinha DONE
    
 - B (+2 itens)
