@@ -16,7 +16,8 @@
 #include "icones/arrow90down.h"
 #include "icones/arrow45up.h"
 #include "icones/arrow90up.h"
-
+#include "icones/Connection.h"
+#include "icones/NoConnection.h"
 
 const uint32_t LINE1_Y = 10;
 const uint32_t LINE2_Y = 120;
@@ -30,6 +31,9 @@ const uint32_t PRED_X = 230;
 const uint32_t CLOCK_X = 5;
 const uint32_t DATE_X = 200;
 const uint32_t STAT_X = 390;
+const uint32_t CONNECTION_WIDHT = 55;
+const uint32_t CONNECTION_HEIGHT = 48;
+
 
 //#define DEBUG 1
 
@@ -102,6 +106,7 @@ extern void xPortSysTickHandler(void);
 QueueHandle_t xQueueRaw;
 QueueHandle_t xQueueDone;
 QueueHandle_t xQueueCheck;
+SemaphoreHandle_t xSnooze;
 
 // defines do Buzzer
 #define BUZZ_PIO           PIOD
@@ -124,8 +129,18 @@ QueueHandle_t xQueueCheck;
 //defines da fita (RED)
 #define RED_PIO           PIOA
 #define RED_PIO_ID        ID_PIOA
-#define RED_PIO_IDX       2u
+#define RED_PIO_IDX       6u
 #define RED_PIO_IDX_MASK  (1u << RED_PIO_IDX)
+
+//defines do botao snooze
+#define SNOOZE_PIO           PIOA
+#define SNOOZE_PIO_ID        ID_PIOA
+#define SNOOZE_PIO_IDX       24u
+#define SNOOZE_PIO_IDX_MASK  (1u << SNOOZE_PIO_IDX)
+
+static void snooze_callback(void){
+  xSemaphoreGiveFromISR(xSnooze, NULL);
+}
 
 /**
  * \brief Called if stack overflow during execution
@@ -202,6 +217,7 @@ static void configure_lcd(void){
 void draw_screen(void) {
   ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
   ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, ILI9488_LCD_HEIGHT-1);
+
 }
 void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
   char *p = text;
@@ -215,28 +231,6 @@ void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
     }
     p++;
   }
-}
-
-void RTC_init(){
-  /* Configura o PMC */
-  pmc_enable_periph_clk(ID_RTC);
-
-  /* Default RTC configuration, 24-hour mode */
-  rtc_set_hour_mode(RTC, 0);
-
-  /* Configura data e hora manualmente */
-  rtc_set_date(RTC, YEAR, MONTH, DAY, WEEK);
-  rtc_set_time(RTC, HOUR, MINUTE, SECOND);
-
-  /* Configure RTC interrupts */
-  NVIC_DisableIRQ(RTC_IRQn);
-  NVIC_ClearPendingIRQ(RTC_IRQn);
-  NVIC_SetPriority(RTC_IRQn, 0);
-  NVIC_EnableIRQ(RTC_IRQn);
-
-  /* Ativa interrupcao via alarme */
-  rtc_enable_interrupt(RTC,  RTC_IER_ALREN);
-
 }
 
 /*
@@ -301,7 +295,6 @@ int inet_aton(const char *cp, in_addr *ap)
   return 1;
 }
 
-
 /**
  * \brief Callback function of IP address.
  *
@@ -319,13 +312,10 @@ static void resolve_cb(uint8_t *hostName, uint32_t hostIp)
 			(int)IPV4_BYTE(hostIp, 2), (int)IPV4_BYTE(hostIp, 3));
 }
 
-
 struct message_t {
   char content[MAIN_WIFI_M2M_BUFFER_SIZE];
   };
-  
-
-  
+ 
 /**
  * \brief Callback function of TCP client socket.
  *
@@ -551,18 +541,14 @@ static void task_json(void){
   
   struct message_t mensagem;
   
-  
   data_g get_atual;
   
   while(1){
 
     if (xQueueReceive(xQueueRaw, &(mensagem), 0)) {
-
-      
-      parseiro(mensagem.content,&get_atual);
-      //printf("RECEBEU\n");
+      parseiro(mensagem.content,&get_atual); // Parseia as mensagem recebida e adiciona seus dados em um struct
       xQueueSend(xQueueDone, &get_atual, 0);
-      xQueueSend(xQueueCheck, &get_atual, 0);
+      xQueueSend(xQueueCheck, &get_atual, 0); // Manda os dados para uma fila
  
     }
     vTaskDelay(100);
@@ -570,150 +556,159 @@ static void task_json(void){
 }
 
 void task_lcd(void){
+	configure_lcd();
+	draw_screen();
 	
-	
-  configure_lcd();
-
-  xQueueDone = xQueueCreate( 1, sizeof( data_g ) );
+	xQueueDone = xQueueCreate( 1, sizeof( data_g ) );
 	 
 	data_g data_received;
 
-
-// 	strcpy(data_received.id  , "5ceab5b2fd74a2bdcb26a27c");
-// 	strcpy(data_received.glicose  , "116");
-// 	strcpy(data_received.direction  , "flat");
-
-	int  isDead = 1;
+	int  isDead ;
+  int glu;
 	char tend[] = "115";
 	
-	uint duty = 30; // dutty cycle inicial
 	int diff = 14;
 	  
-	draw_screen();
 	uint8_t stingLCD[56];
 
-	//int time_in_s  = 60; // segundos
-	//const TickType_t xDelay = time_in_s*1000 / portTICK_PERIOD_MS; // Converte ticks do CORE para ms
+	int time_in_s  = 60; // segundos
+	const TickType_t xDelay = time_in_s*1000 / portTICK_PERIOD_MS; // Converte ticks do CORE para ms
 
 	while (true) {  
-    if (xQueueReceive(xQueueCheck, &(data_received), 0)) {
-       printf("\nALARME %s  %s  %s\n",data_received.id, data_received.glicose,data_received.direction);
+    
+		if (xQueueReceive(xQueueCheck, &(data_received), 0)) { //Recebe os dados da fila
+       glu = atoi(data_received.glicose);
+		   //printf("\nALARME %s  %s  %s\n",data_received.id, data_received.glicose,data_received.direction);
+        if (glu<=140 && glu>=90){
+          isDead = 0;
+        }
+        else if((glu>140 && glu<=180)||(glu<90 && glu>=70)){
+          isDead = 1;
+        }
+        else{
+          isDead = 2;
+        }
+        //printf("isDead %d\n\n",isDead);
+			  sprintf(stingLCD, ":%s", data_received.glicose); 
+			  font_draw_text(&digital52, stingLCD, ICON_HEIGHT+1, LINE2_Y, 1);
+		  
+			  sprintf(stingLCD, "%d/%d",data_received.serverTime);
+			  font_draw_text(&digital52, stingLCD, DATE_X, LINE1_Y, 1);
 
-		  sprintf(stingLCD, ":%s", data_received.glicose);
-		  font_draw_text(&digital52, stingLCD, ICON_HEIGHT+1, LINE2_Y, 1);
-		
-		  if (isDead==0){
-			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodG);
-		  }
-		  else if (isDead==1){
-			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodY);
-		  }
-		  else if (isDead==2){
-			  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodR);
-		  }
-		  if (strcmp(data_received.direction,"90up") == 0){
-			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90up);
-		  }
-		  else if (strcmp(data_received.direction,"45up") == 0){
-			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45up);
-		  }
-		  else if (strcmp(data_received.direction,"flat") == 0){
-			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow);
-		  }
-		  else if (strcmp(data_received.direction,"45down") == 0){
-			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45down);
-		  }
-		  else if (strcmp(data_received.direction,"90down") == 0){
-			  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90down);
-		  }
-		  if(diff>=15){
-			  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_RED));
-		  }
-		  else if (diff<15){
-			  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_GREEN));
-		  }
-		
-		  ili9488_draw_filled_circle(STAT_X,LINE3_Y+25,25);
-		  font_draw_text(&digital52, "Server Status:", BLOOD_ICON_X, LINE3_Y, 1);
+			  sprintf(stingLCD, "%d:%d", data_received.serverDate);
+			  font_draw_text(&digital52, stingLCD, CLOCK_X, LINE1_Y, 5);
+		  
+			  if (strcmp(data_received.serverTime,data_received.serverTime) == 0){
+				  diff++;
+			  }else{
+				  diff=0;
+			  }
 
-		  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
-		  ili9488_draw_filled_rectangle(LINE2_Y+30,0, LINE2_Y+53,220);
-		  ili9488_draw_filled_rectangle(LINE2_Y+105,0, LINE2_Y+153,220);
-		  /*
+			  if (isDead==0){
+				  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodG);
+			  }
+			  else if (isDead==1){
+				  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodY);
+			  }
+			  else if (isDead==2){
+				  ili9488_draw_pixmap(BLOOD_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_bloodR);
+			  }
+			  if (strcmp(data_received.direction,"90up") == 0){
+				  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90up);
+			  }
+			  else if (strcmp(data_received.direction,"45up") == 0){
+				  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45up);
+			  }
+			  else if (strcmp(data_received.direction,"Flat") == 0){
+				  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow);
+			  }
+			  else if (strcmp(data_received.direction,"45down") == 0){
+				  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow45down);
+			  }
+			  else if (strcmp(data_received.direction,"90down") == 0){
+				  ili9488_draw_pixmap(TREND_ICON_X,LINE2_Y,ICON_WIDHT,ICON_HEIGHT,image_data_arrow90down);
+			  }
+			  if(diff>=15){
+				  ili9488_draw_pixmap(STAT_X,LINE3_Y,CONNECTION_WIDHT,CONNECTION_HEIGHT,image_data_NoConnection);
+			  }
+			  else if (diff<15){
+				  ili9488_draw_pixmap(STAT_X,LINE3_Y,CONNECTION_WIDHT,CONNECTION_HEIGHT,image_data_Connection);
+			  }
+	
+			  ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
+			  ili9488_draw_filled_rectangle(LINE2_Y+30,0, LINE2_Y+53,220);
+			  ili9488_draw_filled_rectangle(LINE2_Y+105,0, LINE2_Y+153,220);
+			  /*
 		
-		  TENDENCIA VAI AQUI
+			  TENDENCIA VAI AQUI
 		
-		  */
+			  */
 		
-		  vTaskDelay(1000);
-    }    
+			  vTaskDelay(5000);
+		}    
 	}	 
 }
-
-void task_update_clock(void){
-   uint8_t stingCLK[56];
-   
-   RTC_init();
- 
-   rtc_get_time(RTC,&hour, &minu, &seg);
-   rtc_get_date(RTC,&year, &day,&month,&week);
- 
-   /* Block for 60000ms. */
-   //int time_in_s  = 60; // segundos
-   //const TickType_t xDelay = time_in_s*1000 / portTICK_PERIOD_MS; // Converte ticks do CORE para ms
-   
-   while(true){
-     rtc_get_time(RTC, &hour, &minu, &seg);
-     rtc_get_date(RTC,&year, &month,&day,&week);
-     
-     ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
-     ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, LINE2_Y-30);
- 
-     sprintf(stingCLK, "%d/%d", day,month);
-     font_draw_text(&digital52, stingCLK, DATE_X, LINE1_Y, 1);
- 
-     sprintf(stingCLK, "%d:%d", hour,minu);
-     font_draw_text(&digital52, stingCLK, CLOCK_X, LINE1_Y, 5);
-     vTaskDelay(60000); // delay de 60 segundos
-   }
- }
-
+//cagada
 static void task_alarme(void){
-  
-   xQueueCheck = xQueueCreate( 1, sizeof( data_g ) );
-  
-  data_g data_check;
-  
-  int glu;
-  
-  //TickType_t sleep = 100 ;
-  
-  while(1){
+  xSnooze = xSemaphoreCreateBinary();
+  if (xSnooze == NULL){
+    printf("falha em criar o semaforo \n");
+  }  
+  	
+  xQueueCheck = xQueueCreate( 1, sizeof( data_g ) );
 
-        if (xQueueReceive(xQueueCheck, &(data_check), 0)) {
-          printf("\nALARME %s  %s  %s\n",data_check.id, data_check.glicose,data_check.direction);
+   
+  printf("PORRAAAA");
+	data_g data_check;
+  
+	int glu;
+  
+  int snooze = 0;
+  
+	//TickType_t sleep = 100 ;
+
+	while(1){
+      if ( xSemaphoreTake(xSnooze, ( TickType_t ) 500) == pdTRUE )
+      {
+        if(snooze == 0){
+          printf("\n\nTESTEEE\n\n");
+          snooze = 1;
+          pio_clear(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
+          }else{
+          snooze = 0;
+        }
+        
+      }
+      if (xQueueReceive(xQueueCheck, &(data_check), 0)) {
+          //printf("\nALARME %s  %s  %s\n",data_check.id, data_check.glicose,data_check.direction);
           glu = atoi(data_check.glicose);
-          //glu = 170;
+          //glu = 250;
+          printf("glu %d\n",glu);
 
-          
-          if (glu<=140 && glu>=90){
-            printf("\ngreen");
-            pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
-            pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
-            //pio_set(RED_PIO,RED_PIO_IDX_MASK);
-          }else if((glu>140 && glu<=180)||(glu<90 && glu>=70)){
-            printf("\nyellow");
-            pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
-            pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
-            //pio_clear(RED_PIO, RED_PIO_IDX_MASK);
-           }    
-           else{
-             //pio_set(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
-             pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
-             pio_set(GREEN_PIO, GREEN_PIO_IDX_MASK);
-             //pio_clear(RED_PIO, RED_PIO_IDX_MASK);
-             printf("\nred");
-           }        
+			if (glu<=140 && glu>=90){
+				
+				printf("\ngreen");
+				pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
+				pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
+				pio_set(RED_PIO,RED_PIO_IDX_MASK);
+        pio_clear(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
+
+			}else if((glu>140 && glu<=180)||(glu<90 && glu>=70)){
+				printf("\nyellow");
+				pio_clear(BLUE_PIO,BLUE_PIO_IDX_MASK);
+				pio_set(GREEN_PIO, GREEN_PIO_IDX_MASK);
+				pio_set(RED_PIO, RED_PIO_IDX_MASK);
+        pio_clear(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
+			}    
+			else{
+        if(!snooze){
+          pio_set(BUZZ_PIO, BUZZ_PIO_IDX_MASK);
+        }
+				pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
+				pio_set(GREEN_PIO, GREEN_PIO_IDX_MASK);
+				pio_clear(RED_PIO, RED_PIO_IDX_MASK);
+				printf("\nred");
+			}        
         }
         vTaskDelay(100);  
   }
@@ -729,12 +724,32 @@ void io_init(void){
    pmc_enable_periph_clk(BUZZ_PIO_ID);
    pmc_enable_periph_clk(BLUE_PIO_ID);
    pmc_enable_periph_clk(GREEN_PIO_ID);
-   //pmc_enable_periph_clk(RED_PIO_ID);
+   pmc_enable_periph_clk(RED_PIO_ID);
+   pmc_enable_periph_clk(SNOOZE_PIO_ID);
+   
+   pio_configure(SNOOZE_PIO, PIO_INPUT, SNOOZE_PIO_IDX_MASK, PIO_PULLUP);
+   pio_set_debounce_filter(SNOOZE_PIO,SNOOZE_PIO_IDX_MASK,20);
+   		// Ativa interrup??o
+   		pio_enable_interrupt(SNOOZE_PIO, SNOOZE_PIO_IDX_MASK);
+
+
+
+   		// Configura NVIC para receber interrupcoes do PIO do botao
+   		// com prioridade 1 (quanto mais pr?ximo de 0 maior)
+   		NVIC_EnableIRQ(SNOOZE_PIO_ID);
+   		NVIC_SetPriority(SNOOZE_PIO_ID, 1); // Prioridade 1
+
+   		pio_handler_set(SNOOZE_PIO,
+   		SNOOZE_PIO_ID,
+   		SNOOZE_PIO_IDX_MASK,
+   		PIO_IT_FALL_EDGE,
+   		snooze_callback);
+   
    //Inicializa PA19 como sa?da
    pio_set_output(BUZZ_PIO, BUZZ_PIO_IDX_MASK, 0, 0, 0);
    pio_set_output(BLUE_PIO, BLUE_PIO_IDX_MASK, 1, 0, 0);
    pio_set_output(GREEN_PIO, GREEN_PIO_IDX_MASK, 1, 0, 0);
-   //pio_set_output(RED_PIO, RED_PIO_IDX_MASK, 1, 0, 0);
+   pio_set_output(RED_PIO, RED_PIO_IDX_MASK, 1, 0, 0);
 
 }
 
@@ -750,8 +765,8 @@ int main(void)
 	/* Initialize the board. */
 	sysclk_init();
 	board_init();
-  io_init();
-  RTC_init();
+	io_init();
+	
 
 	/* Initialize the UART console. */
 	configure_console();
@@ -761,23 +776,18 @@ int main(void)
 	TASK_WIFI_STACK_PRIORITY, NULL) != pdPASS) {
 		printf("Failed to create Wifi task\r\n");
 	}
-  if (xTaskCreate(task_json, "JSON", TASK_JSON_STACK_SIZE, NULL,
-  TASK_JSON_STACK_PRIORITY, NULL) != pdPASS) {
-    printf("Failed to create JSON task\r\n");
-  }
-  if (xTaskCreate(task_lcd, "LCD", TASK_LCD_STACK_SIZE, NULL,
-  TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
-    printf("Failed to create LCD task\r\n");
-  }
-  if (xTaskCreate(task_alarme, "ALARME", TASK_ALARME_STACK_SIZE, NULL,
-  TASK_ALARME_STACK_PRIORITY, NULL) != pdPASS) {
-    printf("Failed to create ALARME task\r\n");
-  }
-  if (xTaskCreate(task_update_clock, "temp_read_task", TASK_LCD_STACK_SIZE, NULL,
-   TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
-    printf("Failed to create test pot task\r\n");
-  }
-
+	if (xTaskCreate(task_json, "JSON", TASK_JSON_STACK_SIZE, NULL,
+	TASK_JSON_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create JSON task\r\n");
+	}
+	if (xTaskCreate(task_lcd, "LCD", TASK_LCD_STACK_SIZE, NULL,
+	TASK_LCD_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create LCD task\r\n");
+	}
+	if (xTaskCreate(task_alarme, "ALARME", TASK_ALARME_STACK_SIZE, NULL,
+	TASK_ALARME_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create ALARME task\r\n");
+	}
 	vTaskStartScheduler();
 
 	while(1) {};

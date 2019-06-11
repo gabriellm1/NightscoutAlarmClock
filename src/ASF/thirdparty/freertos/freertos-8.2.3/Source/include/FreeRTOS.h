@@ -833,3 +833,11 @@ point support. */
 
 #endif /* INC_FREERTOS_H */
 
+
+/* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
+standard names. */
+#define xPortPendSVHandler PendSV_Handler
+#define vPortSVCHandler SVC_Handler
+#define xPortSysTickHandler SysTick_Handler
+
+

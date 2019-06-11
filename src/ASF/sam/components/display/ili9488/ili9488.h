@@ -87,8 +87,8 @@ typedef union _union_type
 
 
 /* ILI9488 screen size */
-#define ILI9488_LCD_WIDTH  320
-#define ILI9488_LCD_HEIGHT 480
+#define ILI9488_LCD_WIDTH  480
+#define ILI9488_LCD_HEIGHT 320
 
 /** Height of display using swapped X/Y orientation */
 #define ILI9488_SWITCH_XY_HEIGHT 480
@@ -319,8 +319,8 @@ struct ili9488_font{
  * Display direction option
  */
 enum ili9488_display_direction{
-	LANDSCAPE  = 0,
-	PORTRAIT   = 1
+	LANDSCAPE  = 1,
+	PORTRAIT   = 0
 };
 
 
