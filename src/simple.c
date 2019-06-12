@@ -29,6 +29,10 @@ void parseiro(char BUFFER[], data_g *get_atual) {
 						BUFFER +da+6);
 						sprintf(get_atual->serverTime,"%.*s", 5,
 						BUFFER +da+23);
+						sprintf(get_atual->serverHour,"%.*s", 2,
+						BUFFER +da+23);
+						sprintf(get_atual->serverMinute,"%.*s", 2,
+						BUFFER +da+26);
 					}
 				}
 			}
@@ -95,7 +99,7 @@ for (i = 1; i < r; i++) {
 		//printf("- DATEStr: %.*s\n", t[i + 1].end - t[i + 1].start,
 		//       JSON_STRING + t[i + 1].start);
 	
-		sprintf(get_atual->diviceTime,"%.*s", t[i + 1].end - t[i + 1].start-23,
+		sprintf(get_atual->deviceTime,"%.*s", t[i + 1].end - t[i + 1].start-23,
 		JSON_STRING + t[i + 1].start+11);
 		i++;
 		}else if (jsoneq(JSON_STRING, &t[i], "sgv") == 0) {
@@ -110,6 +114,7 @@ for (i = 1; i < r; i++) {
 		/* We may want to do strtol() here to get numeric value */
 		//printf("- DELTA: %.*s\n", t[i + 1].end - t[i + 1].start,
 		//       JSON_STRING + t[i + 1].start);
+
 		i++;
 		}else if (jsoneq(JSON_STRING, &t[i], "direction") == 0) {
 		/* We may want to do strtol() here to get numeric value */
@@ -117,6 +122,7 @@ for (i = 1; i < r; i++) {
 		//       JSON_STRING + t[i + 1].start);
 		sprintf(get_atual->direction,"%.*s", t[i + 1].end - t[i + 1].start,
 		JSON_STRING + t[i + 1].start);
+
 		i++;
 		}else if (jsoneq(JSON_STRING, &t[i], "type") == 0) {
 		/* We may want to do strtol() here to get numeric value */
@@ -151,7 +157,7 @@ for (i = 1; i < r; i++) {
 		}else {
 		//printf("Unexpected key: %.*s\n", t[i].end - t[i].start,
 		//       JSON_STRING + t[i].start);
-	}
-}
 
+	}
+  }
 }

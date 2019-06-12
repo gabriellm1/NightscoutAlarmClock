@@ -12,11 +12,14 @@
 
 typedef struct {
   char id[80];
-  char glicose[3];
+  char glicose[30];
   char direction[80];
   char serverDate[100];
   char serverTime[100];
-  char diviceTime[100];
+  char deviceTime[100];
+  char serverHour[100];
+  char serverMinute[100];
+
 } data_g;
 
 void parseiro(char BUFFER[],data_g *get_atual);
