@@ -851,7 +851,13 @@
     <Compile Include="src\icones\bloodY.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\icones\Connection.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\icones\digital521.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\icones\NoConnection.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\icones\tfont.h">
