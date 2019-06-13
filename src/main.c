@@ -675,8 +675,8 @@ static void task_alarme(void){
       }
       if (xQueueReceive(xQueueCheck, &(data_check), 0)) {
           glu = atoi(data_check.glicose);
-		  glu = 1000;
-
+          //fake glu to test alarm
+          //glu = 240;
 			if (glu<=140 && glu>=90){				
 				pio_set(BLUE_PIO,BLUE_PIO_IDX_MASK);
 				pio_clear(GREEN_PIO, GREEN_PIO_IDX_MASK);
