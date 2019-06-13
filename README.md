@@ -1,21 +1,22 @@
 # NightscoutAlarmClock
-DIY project for an alarm clock that displays glucose using Nightscout API
+
+## DIY project for an alarm clock that displays glucose using Nightscout API.
 
 
-- C
-   - RTOS DONE 
-   - Ler dados da web DONE
-   - Formatar/Exibir DONE
-   - Cores
-   - Status servidor DONE
-   - Caixinha DONE
-   
-- B (+2 itens)
-- A (+2 itens)
+Hardware : 
 
-  - botão snooze DONE
-  - botão help(IFTTT)
-  - Calculo de tendência
-  - Caixinha muda cor DONE
-  - alarme sonoro DONE
-   
+         SAM E70 Xplained(ARM® Cortex®-M7 core- based)
+         maXTouch Xplained
+         Atmel WINC-1500
+         RGB LED strip
+         Arcade Push Button
+         
+         
+Software:
+         
+         Nightscout Heroku based server
+         Source code written in C
+         
+         
+         
+         
